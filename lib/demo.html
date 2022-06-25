@@ -1,0 +1,19 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>dq demo</title>
+<script src="https://unpkg.com/vue@3"></script>
+<script src="./dq.umd.js"></script>
+<link rel="stylesheet" href="./dq.css">
+<body>
+  
+</body>
+<script>console.log(dq)</script>
+
+<script>
+var app = Vue.createApp().use(dq.default)
+app.config.globalProperties.$keyboard.show({
+  onKeypress: () => {
+    console.log(4444)
+  }
+})
+</script>
