@@ -1,5 +1,7 @@
 import { createApp } from 'vue'
 import App from './App.vue'
-import Keyboard from './components/Toast/index.js'
+import Dq from './components/Toast/index.js'
+import store from "@/store/index";
 
-createApp(App).use(Keyboard).mount('#app')
+
+createApp(App).use(store).mount('#app')

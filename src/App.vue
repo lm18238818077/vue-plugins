@@ -3,39 +3,29 @@
   <button @click="showKey">展示</button>
 
   {{ showValue }}
+  <Dq />
 </template>
 
+<script setup>
+import { getCurrentInstance, ref } from 'vue'
+import Dq from './components/Toast/index.vue'
+import store from "@/store/index";
+
+
+const appCtx = getCurrentInstance()?.appContext;
+console.log(appCtx)
+
+const $dq = appCtx?.config.globalProperties.$dq;
+
+const showValue = ref('');
+
+
+
+</script>
+
 <script>
-import { defineComponent, getCurrentInstance, ref } from 'vue'
-
-export default defineComponent({
+export default {
+  store,
   name: 'App',
-  setup() {
-    const appCtx = getCurrentInstance()?.appContext;
-    console.log(appCtx)
-
-    const keyboard = appCtx?.config.globalProperties.$keyboard;
-
-    const showValue = ref('');
-
-    function showKey() {
-      keyboard.show({
-        // 调用show的时候传入业务需要监听的事件处理器
-        onKeypress(i) {
-          showValue.value = showValue.value += i;
-        }
-      });
-    }
-
-    function hiddenKey() {
-      keyboard.hide();
-    }
-
-    return {
-      hiddenKey,
-      showKey,
-      showValue
-    }
-  }
-})
+}
 </script>
