@@ -78,6 +78,8 @@ const props = defineProps({
   }
 })
 
+
+
 let cloudICP = new ICPSDK({
   serverWSPort: "8002",
   serverAddress: "sdkserver.cloudicp.huawei.com",
@@ -249,6 +251,13 @@ const rejectForm = (value) => {
     },
   });
 };
+
+
+//向外暴露方法
+defineExpose({
+  rejectForm,
+  login
+})
 
 // 注册语音和视频事件 呼入振铃事件
 cloudICP.dispatch.event.register({

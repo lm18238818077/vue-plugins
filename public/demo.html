@@ -1,14 +1,19 @@
+
+
 <!doctype html>
 <meta charset="utf-8">
 <title>dq demo</title>
 <script src="https://unpkg.com/vue@next"></script>
-
+<script src="../public/js/OpenSource/jquery.min.js" type="text/javascript"></script>
+<script src='../public/js/huaweiSDK/ICPSDK_ALL.js' type="text/javascript"></script>
+<script src='../public/js/OpenSource/msp-yuv-player.umd.min.js' type="text/javascript"></script>
 <script src="./dq.umd.js"></script>
 <link rel="stylesheet" href="./dq.css">
 <body>
   <div id="app"></div>
 </body>
-<script>console.log(dq)</script>
 <script>
-  Vue.createApp().use(dq.default).mount('#app')
+  var app = Vue.createApp()
+  app.use(dq.default).mount('#app')
+  console.log(app)
 </script>

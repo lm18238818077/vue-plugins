@@ -6,9 +6,10 @@ let $vm = null;
 
 /** keyboard需要接收并跟踪变化的的props */
 
+const $ref = ref(null)
+
 const props = reactive({
   user: '66647000',
-  ref: 'dqRef',
   config: {}
 })
 
@@ -22,7 +23,8 @@ const $dq = {
   /** 调用show方法可以改变默认的配置 */
   changeConfig(val){
     Object.assign(props.config, val)
-  }
+  },
+  $ref
 }
 
 export default {
@@ -37,6 +39,7 @@ export default {
           return () => {
             return h(Dq, {
               ...props,
+              ref: $ref
             })
           }
         }

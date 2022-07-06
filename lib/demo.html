@@ -10,10 +10,14 @@
 <script src="./dq.umd.js"></script>
 <link rel="stylesheet" href="./dq.css">
 <body>
-  <div id="app"></div>
+  <button onclick="aa()">aa</button>
 </body>
 <script>
   var app = Vue.createApp()
-  app.use(dq.default).mount('#app')
+  app.use(dq.default)
   console.log(app)
+  var $ref = app.config.globalProperties.$dq.$ref.value
+  function aa(){
+    $ref.login()
+  }
 </script>
