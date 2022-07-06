@@ -5,7 +5,6 @@ import Dq from './index.vue';
 let $vm = null;
 
 /** keyboard需要接收并跟踪变化的的props */
-const dqRef = ref(null)
 
 const props = reactive({
   user: '66647000',
@@ -21,7 +20,6 @@ const globalConfig = {
 /** 插件控制器 controller */
 const $dq = {
   /** 调用show方法可以改变默认的配置 */
-  dqRef,
   changeConfig(val){
     Object.assign(props.config, val)
   }
