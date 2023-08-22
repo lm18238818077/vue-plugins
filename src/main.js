@@ -1,7 +1,10 @@
 import { createApp } from 'vue'
 import App from './App.vue'
-import Dq from './components/Toast/index.js'
-import store from "@/store/index";
+import IconSvg from '@/components/IconSvg/index.vue'
+import { createPinia } from 'pinia'
+import directive from '@/directive'
 
-
-createApp(App).use(store).mount('#app')
+const pinia = createPinia()
+const app = createApp(App)
+directive(app)
+app.component('IconSvg', IconSvg).use(pinia).mount('#app')
