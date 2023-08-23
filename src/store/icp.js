@@ -1,29 +1,28 @@
-import { defineStore } from 'pinia'
 
-export const useIcpStore = defineStore({
-  id: 'icp',
-  state: () => ({
-    onCallConnect: [
+import { computed, ref } from 'vue'
 
-    ],
-  }),
-  actions: {
-    hasHkCode (data, type = 'hkvideo') {
-      return this.onCallConnect.filter((v1) => v1.calltype === type).findIndex((v) => v.deviceCode === data.deviceCode) > -1
-    },
-    addCall (data) {
-      // calltype hkvideo hkreplay hktalk
-      this.onCallConnect.push(data)
-    },
-    reduceCall (val) {
-      let index = this.onCallConnect.findIndex(v => v.cid === val.cid)
-      if (index < 0) return
-      this.onCallConnect.splice(index, 1)
-    }
-  },
-  getters: {
-    hkCallConnect (state) {
-      return state.onCallConnect.filter(v => v.type === 'hk')
-    }
+
+export function useIcpStore() {
+  // 局部状态，每个组件都会创建
+  const onCallConnect = ref([])
+
+  const addCall = (data) => {
+    onCallConnect.value.push(data)
   }
-})
+  const reduceCall = (val) => {
+    let index = onCallConnect.value.findIndex(v => v.cid === val.cid)
+    if (index < 0) return
+    onCallConnect.value.splice(index, 1)
+  }
+
+  const hkCallConnect = computed(() => {
+    return onCallConnect.value.filter(v => v.type === 'hk')
+  })
+
+  return {
+    onCallConnect,
+    addCall,
+    reduceCall,
+    hkCallConnect
+  }
+}

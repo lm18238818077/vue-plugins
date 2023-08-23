@@ -23,7 +23,7 @@ class HkPlayer {
     }
     this.player = new HkConstructor.JSPlugin({
       szId: 'hk_player',
-      szBasePath: './hk',
+      szBasePath: '/hk',
       iMaxSplit: 4,
       iCurrentSplit: 2,
       openDebug: true,

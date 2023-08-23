@@ -82,9 +82,9 @@
 </template>
 
 <script setup>
-import { reactive, ref, shallowRef, onMounted, onBeforeMount, onBeforeUnmount, watch } from 'vue'
+import { reactive, ref, shallowRef, onMounted, computed, onBeforeUnmount, watch } from 'vue'
 import HkPlayer from '@/utils/lib/hkPlayer'
-import { ElIcon, ElLoading } from "element-plus"
+import { ElIcon } from "element-plus"
 import { DArrowRight, CircleClose, VideoPause, VideoPlay, DArrowLeft } from '@element-plus/icons-vue'
 import 'element-plus/es/components/icon/style/css'
 

@@ -18,7 +18,12 @@
         :class="`dq_dialog_${th}`"
         v-bind="$attrs"
       >
-        <slot />
+        <template
+          v-for="(index, name) in $slots"
+          #[name]
+        >
+          <slot :name="name" />
+        </template>
       </el-dialog>
     </div>
   </Teleport>

@@ -1,7 +1,7 @@
 <template>
   <DqDialog
     v-for="v, i in hkCallConnect"
-    :key="v.deviceCode"
+    :key="i"
     :model-value="true"
     :destroy-on-close="true"
     :small="true"
@@ -35,12 +35,12 @@
 </template>
 
 <script setup>
+import { computed, watch } from 'vue'
 import DqDialog from '@/components/Dq/DqDialog.vue'
 import HkDialogInfo from './HkDialogInfo.vue'
 import { useIcpStore } from '@/store/icp'
 import dqVoicePng from '@/assets/dq_voice.png'
 import dqVideoPng from '@/assets/dq_video.png'
-import { storeToRefs } from 'pinia'
 import { hkpreviewURLs } from '@/api/hk'
 
 import { ElMessage, ElIcon } from "element-plus";
@@ -50,11 +50,16 @@ import 'element-plus/es/components/icon/style/css'
 
 
 const icpStore = useIcpStore()
-const { hkCallConnect } = storeToRefs(icpStore)
-
+const hkCallConnect = computed(() => {
+  return icpStore.hkCallConnect.value
+})
 const handleClose = (v) => {
   icpStore.reduceCall(v)
 }
+
+watch(() => [...hkCallConnect.value], (n) => {
+  console.log(n)
+})
 
 const handleDialogClose = (v) => {
   v.instance?.stopAllPlay()

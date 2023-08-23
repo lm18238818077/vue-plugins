@@ -1,0 +1,23 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>hk demo</title>
+<script src="https://unpkg.com/vue@next"></script>
+<script src="./hk.umd.js"></script>
+<link rel="stylesheet" href="./hk.css">
+<body>
+  <div id="app"></div>
+  <button onclick="aa()">aad</button>
+</body>
+<script>
+var app = Vue.createApp()
+app.use(hk.default)
+console.log(app)
+var $ref = app.config.globalProperties.$hk.$ref.value
+function aa(){
+  $ref.handleGetHkUrl({
+    data: { deviceCode: '7bb1519c69de4ac1883bfa0cc4ccae89' },
+    baseUrl: 'http://192.168.2.231:9000/api/sys/HikService/previewURLs',
+  })
+  console.log($ref)
+}
+</script>

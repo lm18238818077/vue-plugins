@@ -14,6 +14,7 @@
 
 <script setup>
 import { computed } from 'vue'
+import '@/assets/iconfont.js'
 defineOptions({
   name: 'IconSvg'
 })

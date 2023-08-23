@@ -18,7 +18,7 @@ const $dq = appCtx?.config.globalProperties.$dq;
 
 const handle = () => {
   hkRef.value?.handleGetHkUrl({
-    data: { deviceCode: '7bb1519c69de4ac1883bfa0cc4ccae89' },
+    data: { deviceCode: '7bb1519c69de4ac1883bfa0cc4ccae89', name: 'cjj' },
     baseUrl: 'http://192.168.2.231:9000/api/sys/HikService/previewURLs',
   })
 }
