@@ -1,5 +1,6 @@
 import { createApp, h, reactive, ref } from 'vue';
 import IconSvg from '@/components/IconSvg/index.vue'
+import { ElConfigProvider } from 'element-plus'
 import loading from '@/directive/loading'
 
 import Hk from './index.vue';
@@ -34,10 +35,12 @@ export default {
       $vm = createApp({
         setup() {
           return () => {
-            return h(Hk, {
-              ...props,
-              ref: $ref
-            })
+            return h(ElConfigProvider, { zIndex: 100000 }, [
+              h(Hk, {
+                ...props,
+                ref: $ref
+              })
+            ])
           }
         }
       }).component('IconSvg', IconSvg).directive('loading', loading).mount(wrapper);

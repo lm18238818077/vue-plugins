@@ -1,17 +1,23 @@
-<!DOCTYPE html>
-<html lang="">
-  <head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width,initial-scale=1.0">
-    <link rel="icon" href="<%= BASE_URL %>favicon.ico">
-    <title><%= htmlWebpackPlugin.options.title %></title>
-  </head>
-  <body>
-    <noscript>
-      <strong>We're sorry but <%= htmlWebpackPlugin.options.title %> doesn't work properly without JavaScript enabled. Please enable it to continue.</strong>
-    </noscript>
-    <div id="app"></div>
-    <!-- built files will be auto injected -->
-  </body>
-</html>
+<!doctype html>
+<meta charset="utf-8">
+<title>hk demo</title>
+<script src="./3.2.36_dist_vue.global.js"></script>
+<script src="./hk.umd.js"></script>
+<link rel="stylesheet" href="./hk.css">
+<body>
+  <div id="app"></div>
+  <button onclick="aa()">aadc</button>
+</body>
+<script>
+var app = Vue.createApp()
+app.use(hk.default)
+console.log(app)
+var $ref = app.config.globalProperties.$hk.$ref.value
+function aa(){
+  $ref.handleGetHkUrl({
+    data: { deviceCode: 'e4071db6c3424bacba98242f844ea56e', name: 'cjj' },
+    baseUrl: 'http://192.168.2.231:9000/api/sys/HikService/previewURLs',
+  })
+  console.log($ref)
+}
+</script>

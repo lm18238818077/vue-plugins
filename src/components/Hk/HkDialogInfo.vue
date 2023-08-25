@@ -49,6 +49,17 @@
           @click="handleVoice()"
         />
       </div>
+      <div>
+        <el-icon
+          color="#fcf498"
+          :size="20"
+          class="icon iconall"
+          title="截屏"
+          @click="handleCapture()"
+        >
+          <Crop />
+        </el-icon>
+      </div>
       <div
         v-if="isBack"
       >
@@ -85,7 +96,7 @@
 import { reactive, ref, shallowRef, onMounted, computed, onBeforeUnmount, watch } from 'vue'
 import HkPlayer from '@/utils/lib/hkPlayer'
 import { ElIcon } from "element-plus"
-import { DArrowRight, CircleClose, VideoPause, VideoPlay, DArrowLeft } from '@element-plus/icons-vue'
+import { DArrowRight, CircleClose, VideoPause, VideoPlay, DArrowLeft, Crop } from '@element-plus/icons-vue'
 import 'element-plus/es/components/icon/style/css'
 
 const props = defineProps({
@@ -162,6 +173,11 @@ const playChange = (value) => {
       loading.value = false
     })
   }
+}
+
+const handleCapture = () => {
+  let fileName = Date.now()
+  hkPlayer.value.capture(fileName)
 }
 
 const handleVoice = () => {
@@ -255,7 +271,7 @@ defineExpose({ resize })
 <style scoped lang='less'>
 .wrap{
   position: relative;
-  width: 100;
+  width: 100%;
   height: 100%;
   &.no{
     & > *:not(.hkinfo){

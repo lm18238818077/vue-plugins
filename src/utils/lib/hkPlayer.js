@@ -233,14 +233,11 @@ class HkPlayer {
     )
   }
 
-  capture (imageType) {
+  capture (fileName, imageType = 'JPEG') {
     let player = this.player
     let index = player.currentWindowIndex
 
-    player.JS_CapturePicture(index, 'img', imageType).then(
-      () => { console.log('capture success', imageType) },
-      (e) => { console.error(e) }
-    )
+    return player.JS_CapturePicture(index, fileName, imageType)
   }
 
   recordStart (type, fileNameDefault) {
