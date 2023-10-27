@@ -13,14 +13,16 @@ let $vm = null;
 const $ref = ref(null)
 
 const props = reactive({
+  countdown: 10,
+  host: ''
 })
 
 
 /** 插件控制器 controller */
 const $hk = {
   /** 调用show方法可以改变默认的配置 */
-  changeConfig(val){
-    Object.assign(props.config, val)
+  changeProps(val){
+    Object.assign(props, val)
   },
   $ref
 }

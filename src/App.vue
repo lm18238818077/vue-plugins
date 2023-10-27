@@ -1,6 +1,6 @@
 <template>
   <el-config-provider :z-index="5000">
-    <Hk ref="hkRef"/>
+    <Hk ref="hkRef" host="http://192.168.2.102:2025"/>
     <el-button type="primary" @click="handle">aa</el-button>
   </el-config-provider>
 </template>
@@ -19,10 +19,7 @@ console.log(appCtx)
 const $dq = appCtx?.config.globalProperties.$dq;
 
 const handle = () => {
-  hkRef.value?.handleGetHkUrl({
-    data: { deviceCode: 'e4071db6c3424bacba98242f844ea56e', name: 'cjj' },
-    baseUrl: 'http://192.168.2.231:9000/api/sys/HikService/previewURLs',
-  })
+  hkRef.value?.handleGetHkUrl({rescode: 'cf8261c864dd46309c0b197b217bce6f', sercode: 'ShiHeng'})
 }
 
 

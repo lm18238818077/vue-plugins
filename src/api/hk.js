@@ -82,3 +82,15 @@ export const wHkpreviewURLs = (data) => {
     data
   })
 }
+
+export const hkControl = (data, hkhost) => {
+  return request({
+    url: `${hkhost}/video/hkjk`,
+    headers: {
+      keyword: 'SxSh'
+    },
+    noTip: true,
+    method: 'post',
+    data
+  })
+}

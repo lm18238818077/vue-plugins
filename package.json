@@ -7,10 +7,11 @@
     "build": "vue-cli-service build",
     "lint": "vue-cli-service lint",
     "lib": "vue-cli-service build --dest lib --target lib --name hk src/components/Hk/index.js",
-    "wc": "vue-cli-service build --target wc --name my-element src/app.js"
+    "wc": "vue-cli-service build --target wc --name my-element src/components/Hk/index.vue"
   },
   "dependencies": {
     "@vue/web-component-wrapper": "^1.3.0",
+    "@vueuse/core": "^10.5.0",
     "axios": "^1.4.0",
     "core-js": "^3.8.3",
     "crypto-js": "^4.1.1",

@@ -10,83 +10,84 @@
     const PLAYM4_VIDEO_FRAME = 101; // 视频帧
 
     const PLAYM4_OK = 1;
+    const PLAYM4_ORDER_ERROR = 2;
     const PLAYM4_DECODE_ERROR = 44 	// 解码失败
     const PLAYM4_NOT_KEYFRAME = 48; 	// 非关键帧
     const PLAYM4_NEED_MORE_DATA = 31;   // 需要更多数据才能解析
+    const PLAYM4_NEED_NEET_LOOP = 35; //丢帧需要下个循环
     const PLAYM4_SYS_NOT_SUPPORT = 16; 	// 不支持
-
-    const PLAYM4_PARA_ENCODER_ERROR                     = 71;  //音频编码参数错误
-    const PLAYM4_PRECONDITION_ENCODER_ERROR             = 72;  //不满足音频编码条件错误
-    const PLAYM4_ENCODER_ERROR                          = 73;  //音频编码失败
-    const PLAYM4_CREATE_ENCODER_ERROR                   = 74;  //创建音频编码器失败
-    const PLAYM4_NOSUPPORT_ENCODER_ERROR                = 75;  //音频编码不支持
-    const PLAYM4_ALLOC_MEMORY_ENCODER_ERROR	            = 76;  //音频编码相关内存申请失败
-    const PLAYM4_BUF_OVER_ENCODER_ERROR                 = 77;  //音频编码相关buffer满
-    const PLAYM4_NEED_MORE_DATA_ENCODER_ERROR           = 78;  //音频编码需要更多数据进行编码
-    const PLAYM4_CALL_ORDER_ENCODER_ERROR               = 79;  //音频编码调用顺序错误
-
-    const PLAYM4_ITYPE_DECODE_ERROR                     =100;   //定位后送进来的第一帧I帧解码失败
-    const PLAYM4_FIRST_FRAME_NOT_ICURRENT               =101;   //定位后送进来的第一帧不是定位帧所在的I帧（Ni>Mp）
-
 
     importScripts('Decoder.js');
     Module.addOnPostRun(function () {
-        postMessage({'function': "loaded"});
+        postMessage({ 'function': "loaded" });
     });
 
     var iStreamMode = 0;  // 流模式
 
     var bOpenMode = false;
     var bOpenStream = false;
-    
+
     var funGetFrameData = null;
     var funGetAudFrameData = null;
-	
-	var bWorkerPrintLog=false;//worker层log开关
 
-    onmessage = function (event)
-    {
+    var bWorkerPrintLog = false;//worker层log开关
+
+    var g_nPort = -1;
+    var pInputData = null;
+    var inputBufferSize = 40960;
+
+    self.JSPlayM4_RunTimeInfoCallBack = function (nPort, pstRunTimeInfo, pUser) {
+        let port = nPort;
+        let user = pUser;
+        let nRunTimeModule = Module.HEAP32[pstRunTimeInfo >> 2];
+        let nStrVersion = Module.HEAP32[pstRunTimeInfo + 4 >> 2];
+        let nFrameTimeStamp = Module.HEAP32[pstRunTimeInfo + 8 >> 2];
+        let nFrameNum = Module.HEAP32[pstRunTimeInfo + 12 >> 2];
+        let nErrorCode = Module.HEAP32[pstRunTimeInfo + 16 >> 2];
+        // console.log("nRunTimeModule:"+nRunTimeModule+",nFrameNum:"+nFrameNum+",nErrorCode:"+nErrorCode);
+        postMessage({ 'function': "RunTimeInfoCallBack", 'nRunTimeModule': nRunTimeModule, 'nStrVersion': nStrVersion, 'nFrameTimeStamp': nFrameTimeStamp, 'nFrameNum': nFrameNum, 'nErrorCode': nErrorCode });
+    }
+
+    onmessage = function (event) {
         var eventData = event.data;
         var res = 0;
-        switch (eventData.command)
-        {
-			case "printLog":
-			    let downloadFlag=eventData.data;
-			    if(downloadFlag===true)
-                {
-                    bWorkerPrintLog=true;
-                    res = Module._SetPrintLogFlag(downloadFlag);
+        switch (eventData.command) {
+            case "printLog":
+                let downloadFlag = eventData.data;
+                if (downloadFlag === true) {
+                    bWorkerPrintLog = true;
+                    res = Module._SetPrintLogFlag(g_nPort, downloadFlag);
                 }
-			    else
-                {
-                    bWorkerPrintLog=false;
-                    res = Module._SetPrintLogFlag(downloadFlag);
+                else {
+                    bWorkerPrintLog = false;
+                    res = Module._SetPrintLogFlag(g_nPort, downloadFlag);
                 }
 
-				if (res !== PLAYM4_OK)
-                {
-					console.log("DecodeWorker.js: PlayerSDK print log failed,res"+res);
-                    postMessage({'function': "printLog", 'errorCode': res});
+                if (res !== PLAYM4_OK) {
+                    console.log("DecodeWorker.js: PlayerSDK print log failed,res" + res);
+                    postMessage({ 'function': "printLog", 'errorCode': res });
                 }
-				break;
+                break;
             case "SetPlayPosition":
-                let nFrameNumOrTime=eventData.data;
-                let enPosType=eventData.type;
-                res = Module._SetPlayPosition(nFrameNumOrTime,enPosType);
-                if (res !== PLAYM4_OK)
-                {
-                    postMessage({'function': "SetPlayPosition", 'errorCode': res});
-                    return;
-                }
-                //有没有buffer需要清除
+                let nFrameNumOrTime = eventData.data;
+                let enPosType = eventData.type;
+                // res = Module._SetPlayPosition(nFrameNumOrTime,enPosType);
+                // if (res !== PLAYM4_OK)
+                // {
+                //     postMessage({'function': "SetPlayPosition", 'errorCode': res});
+                //     return;
+                // }
+                // //有没有buffer需要清除
 
                 break;
             case "SetStreamOpenMode":
+                //获取端口号
+                g_nPort = Module._GetPort();
+                //设置流打开模式
                 iStreamMode = eventData.data;
-                res = Module._SetStreamOpenMode(iStreamMode);
-                if (res !== PLAYM4_OK)
-                {
-                    postMessage({'function': "SetStreamOpenMode", 'errorCode': res});
+                res = Module._SetStreamOpenMode(g_nPort, iStreamMode);
+                if (res !== PLAYM4_OK) {
+                    postMessage({ 'function': "SetStreamOpenMode", 'errorCode': res });
                     return;
                 }
                 bOpenMode = true;
@@ -96,110 +97,77 @@
                 // 接收到的数据
                 var iHeadLen = eventData.dataSize;
                 var pHead = Module._malloc(iHeadLen + 4);
-                if (pHead === null)
-                {
+                if (pHead === null) {
                     return;
                 }
                 var aHead = Module.HEAPU8.subarray(pHead, pHead + iHeadLen);
-                aHead.set(eventData.data);
-                res = Module._OpenStream(pHead, iHeadLen, eventData.bufPoolSize);
-                postMessage({'function': "OpenStream", 'errorCode': res});
-                if (res !== PLAYM4_OK)
-                {
+                aHead.set(new Uint8Array(eventData.data));
+                res = Module._OpenStream(g_nPort, pHead, iHeadLen, eventData.bufPoolSize);
+                postMessage({ 'function': "OpenStream", 'errorCode': res });
+                if (res !== PLAYM4_OK) {
                     //释放内存
                     Module._free(pHead);
                     pHead = null;
                     return;
                 }
                 bOpenStream = true;
-
-                // 加4字节长度信息
-                var a32 = new Uint32Array([iHeadLen]);
-                var a8 = new Uint8Array(a32.buffer);
-                var tempBuf = new Uint8Array(iHeadLen + 4);
-                tempBuf.set(a8, 0);
-                tempBuf.set(eventData.data, 4);
-                a32 = null;
-                a8 = null;
-
-                aHead = Module.HEAPU8.subarray(pHead, pHead + iHeadLen + 4);
-                aHead.set(tempBuf);
-                tempBuf = null;
-
-                res = Module._InputData(pHead, iHeadLen + 4);
-                if (res !== PLAYM4_OK)
-                {
-                    postMessage({'function': "InputData", 'errorCode': res});
-                    Module._free(pHead);
-                    pHead = null;
+                break;
+            case "Play":
+                let resP = Module._Play(g_nPort);
+                if (resP !== PLAYM4_OK) {
                     return;
                 }
-
-                // 释放内存
-                Module._free(pHead);
-                pHead = null;
-
-                if (funGetFrameData === null) {
-                    funGetFrameData = Module.cwrap('GetFrameData', 'number');
-                }
-
-                if (iStreamMode === 0) {
-                    // Module._GetFrameData();
-                    funGetFrameData();
-                }
                 break;
-
             case "InputData":
                 // 接收到的数据
                 var iLen = eventData.dataSize;
-                if(bWorkerPrintLog)
-                {
-                    console.log("<<<Worker: DecodeWorker-InputData iLen:"+iLen);
-                }
-                
-                if (iLen > 0)
-                {
-                    var pInputData = Module._malloc(iLen);
-                    if (pInputData === null)
-                    {
-                        return;
+                if (iLen > 0) {
+                    if (pInputData == null || iLen > inputBufferSize) {
+                        if (pInputData != null) {
+                            Module._free(pInputData);
+                            pInputData = null;
+                        }
+                        if (iLen > inputBufferSize) {
+                            inputBufferSize = iLen;
+                        }
+
+                        pInputData = Module._malloc(inputBufferSize);
+                        if (pInputData === null) {
+                            return;
+                        }
                     }
+
                     var inputData = new Uint8Array(eventData.data);
                     // var aInputData = Module.HEAPU8.subarray(pInputData, pInputData + iLen);
                     // aInputData.set(inputData);
                     Module.writeArrayToMemory(inputData, pInputData);
                     inputData = null;
-                    res = Module._InputData(pInputData, iLen);
-                    //console.log("DecodeWorker-InputData-ret:%d", res);
-					if(bWorkerPrintLog)
-					{
-						console.log("<<<Worker:InputData result:"+ +res);
-					}
-					
-                    if (res !== PLAYM4_OK)
-                    {
-                        if (res === 98)
-                        {
-                            res = 1;
-                        }
-                        postMessage({'function': "InputData", 'errorCode': res});
+                    res = Module._InputData(g_nPort, pInputData, iLen);
+                    if (res !== PLAYM4_OK) {
+                        let errorCode = Module._GetLastError(g_nPort);
+                        let sourceRemain = Module._GetSourceBufferRemain(g_nPort);
+                        postMessage({ 'function': "InputData", 'errorCode': errorCode, "sourceRemain": sourceRemain });
                     }
-                    Module._free(pInputData);
-                    pInputData = null;
+                    //Module._free(pInputData);
+                    //pInputData = null;
+                } else {
+                    let sourceRemain = Module._GetSourceBufferRemain(g_nPort);
+                    if (sourceRemain == 0) {
+                        postMessage({ 'function': "InputData", 'errorCode': PLAYM4_NEED_MORE_DATA });
+                        return;
+                    }
                 }
 
                 /////////////////////
-                if (funGetFrameData === null)
-                {
-                    funGetFrameData = Module.cwrap('GetFrameData', 'number');
-                }
+                // if (funGetFrameData === null) {
+                //     funGetFrameData = Module.cwrap('GetFrameData', 'number');
+                // }
 
-                while (bOpenMode && bOpenStream)
-                {
-                    
-                    var ret = getFrameData(funGetFrameData);
+                while (bOpenMode && bOpenStream) {
+
+                    var ret = getFrameData();
                     // 直到获取视频帧或数据不足为止
-                    if (PLAYM4_VIDEO_FRAME === ret || PLAYM4_NEED_MORE_DATA === ret)
+                    if (PLAYM4_VIDEO_FRAME === ret || PLAYM4_NEED_MORE_DATA === ret || PLAYM4_ORDER_ERROR === ret)//PLAYM4_VIDEO_FRAME === ret ||  || PLAYM4_NEED_NEET_LOOP === ret
                     {
                         break;
                     }
@@ -213,13 +181,17 @@
                     return;
                 }
                 var nKeySize = eventData.data.length
-                var bufData = stringToBytes (eventData.data);
+                var bufData = stringToBytes(eventData.data);
                 var aKeyData = Module.HEAPU8.subarray(pKeyData, pKeyData + keyLen);
+                let u8array = new Uint8Array(keyLen);
+                aKeyData.set(u8array, 0);
                 aKeyData.set(new Uint8Array(bufData));
+                aKeyData = null;
+                u8array = null;
 
-                res = Module._SetSecretKey(eventData.nKeyType, pKeyData, keyLen, nKeySize);
+                res = Module._SetSecretKey(g_nPort, eventData.nKeyType, pKeyData, keyLen);//, nKeySize
                 if (res !== PLAYM4_OK) {
-                    postMessage({'function': "SetSecretKey", 'errorCode': res});
+                    postMessage({ 'function': "SetSecretKey", 'errorCode': res });
                     Module._free(pKeyData);
                     pKeyData = null;
                     return;
@@ -234,7 +206,12 @@
                 var nBMPHeight = eventData.height;
                 var pYUVData = eventData.data;
                 var nYUVSize = nBMPWidth * nBMPHeight * 3 / 2;
-                var oBMPCropRect = eventData.rect;
+                var oJpegCropRect = {
+                    left: eventData.left,
+                    top: eventData.top,
+                    right: eventData.right,
+                    bottom: eventData.bottom
+                };
 
                 var pDataYUV = Module._malloc(nYUVSize);
                 if (pDataYUV === null) {
@@ -263,12 +240,12 @@
                     return;
                 }
 
-               //Module._memset(pBmpSize, nBmpSize, 4); // 防止bmp截图出现输入数据过大的错误码
-                Module.setValue(pBmpSize, nBmpSize, "i32"); 
-                res = Module._GetBMP(pDataYUV, nYUVSize, pBmpData, pBmpSize,
+                //Module._memset(pBmpSize, nBmpSize, 4); // 防止bmp截图出现输入数据过大的错误码
+                Module.setValue(pBmpSize, nBmpSize, "i32");
+                res = Module._GetBMP(g_nPort, pDataYUV, nYUVSize, pBmpData, pBmpSize,
                     oBMPCropRect.left, oBMPCropRect.top, oBMPCropRect.right, oBMPCropRect.bottom);
                 if (res !== PLAYM4_OK) {
-                    postMessage({'function': "GetBMP", 'errorCode': res});
+                    postMessage({ 'function': "GetBMP", 'errorCode': res });
                     Module._free(pDataYUV);
                     pDataYUV = null;
                     Module._free(pBmpData);
@@ -285,8 +262,8 @@
                 var aBmpData = new Uint8Array(nBmpDataSize);
                 aBmpData.set(Module.HEAPU8.subarray(pBmpData, pBmpData + nBmpDataSize));
 
-                postMessage({'function': "GetBMP", 'data': aBmpData, 'errorCode': res}, [aBmpData.buffer]);
-                aBmpData=null;
+                postMessage({ 'function': "GetBMP", 'data': aBmpData, 'errorCode': res }, [aBmpData.buffer]);
+                aBmpData = null;
                 if (pDataYUV != null) {
                     Module._free(pDataYUV);
                     pDataYUV = null;
@@ -306,7 +283,12 @@
                 var nJpegHeight = eventData.height;
                 var pYUVData1 = eventData.data;
                 var nYUVSize1 = nJpegWidth * nJpegHeight * 3 / 2;
-                var oJpegCropRect = eventData.rect;
+                var oJpegCropRect = {
+                    left: eventData.left,
+                    top: eventData.top,
+                    right: eventData.right,
+                    bottom: eventData.bottom
+                };
 
                 var pDataYUV1 = Module._malloc(nYUVSize1);
                 if (pDataYUV1 === null) {
@@ -338,10 +320,10 @@
 
                 Module.setValue(pJpegSize, nJpegWidth * nJpegHeight * 2, "i32");    // JPEG抓图，输入缓冲长度不小于当前帧YUV大小
 
-                res = Module._GetJPEG(pDataYUV1, nYUVSize1, pJpegData, pJpegSize,
+                res = Module._GetJPEG(g_nPort, pDataYUV1, nYUVSize1, pJpegData, pJpegSize,
                     oJpegCropRect.left, oJpegCropRect.top, oJpegCropRect.right, oJpegCropRect.bottom);
                 if (res !== PLAYM4_OK) {
-                    postMessage({'function': "GetJPEG", 'errorCode': res});
+                    postMessage({ 'function': "GetJPEG", 'errorCode': res });
                     if (pJpegData != null) {
                         Module._free(pJpegData);
                         pJpegData = null;
@@ -366,7 +348,7 @@
                 var aJpegData = new Uint8Array(nJpegSize);
                 aJpegData.set(Module.HEAPU8.subarray(pJpegData, pJpegData + nJpegSize));
 
-                postMessage({'function': "GetJPEG", 'data': aJpegData, 'errorCode': res}, [aJpegData.buffer]);
+                postMessage({ 'function': "GetJPEG", 'data': aJpegData, 'errorCode': res }, [aJpegData.buffer]);
 
                 nJpegSize = null;
                 aJpegData = null;
@@ -387,101 +369,113 @@
 
             case "SetDecodeFrameType":
                 var nFrameType = eventData.data;
-                res = Module._SetDecodeFrameType(nFrameType);
+                res = Module._SetDecodeFrameType(g_nPort, nFrameType);
                 if (res !== PLAYM4_OK) {
-                    postMessage({'function': "SetDecodeFrameType", 'errorCode': res});
+                    postMessage({ 'function': "SetDecodeFrameType", 'errorCode': res });
                     return;
                 }
                 break;
-
-            case "DisplayRegion":
-                var nRegionNum = eventData.nRegionNum;
-                var srcRect = eventData.srcRect;
-                var hDestWnd = eventData.hDestWnd;
-                var bEnable = eventData.bEnable;
-
-                res = Module._SetDisplayRegion(nRegionNum, srcRect, hDestWnd, bEnable);
-                if (res !== PLAYM4_OK) {
-                    postMessage({'function': "DisplayRegion", 'errorCode': res});
-                    return;
-                }
-                break;
-
             case "CloseStream":
-                res = Module._CloseStream();
+                //stop
+                let resS = Module._Stop(g_nPort);
+                if (resS !== PLAYM4_OK) {
+                    postMessage({ 'function': "Stop", 'errorCode': res });
+                    return;
+                }
+                //closeStream
+                res = Module._CloseStream(g_nPort);
                 if (res !== PLAYM4_OK) {
-                    postMessage({'function': "CloseStream", 'errorCode': res});
+                    postMessage({ 'function': "CloseStream", 'errorCode': res });
+                    return;
+                }
+                //freePort
+                let resF = Module._FreePort(g_nPort);
+                if (resF !== PLAYM4_OK) {
+                    postMessage({ 'function': "FreePort", 'errorCode': res });
+                    return;
+                }
+                if (pInputData != null) {
+                    Module._free(pInputData);
+                    pInputData = null;
+                }
+                break;
+            case "PlaySound":
+                let resPS = Module._PlaySound(g_nPort);
+                if (resPS !== PLAYM4_OK) {
+                    console.log("PlaySound failed");
                     return;
                 }
                 break;
-
-            case "SetIFrameDecInterval":
-                Module._SetIFrameDecInterval(eventData.data);
-                break;
-			case "SetLostFrameMode":
-			    Module._SetLostFrameMode(eventData.data);
-				break;
-			
-                /*******************************************worker音频编码相关接口实现**********************************************************/
-            case "CreateAudEncode":
-			
-                res = Module._CreateAudEncode(eventData.encodertype);
-                
-                postMessage({'function':"CreateAudEncode",'errorCode':res});
-                break;
-            case "SetAudEncodeParam":
-                
-                res = Module._SetAudEncodeParam(eventData.samplerate, eventData.channel, eventData.bitrate, eventData.bitwidth);
-			
-                postMessage({'function':"SetAudEncodeParam",'errorCode':res});
-                break;
-            case "DestroyAudEncode":
-               
-                res = Module._DestroyAudEncode();
-                
-                postMessage({'function':"DestroyAudEncode",'errorCode':res});
-                break;
-            case "InputAudEncodeData":
-			    if(bWorkerPrintLog)
-				{
-					console.log("<<<Worker: 20200113 DecodeWorker-InputAudEncodeData 1");
-				}
-                
-                var iLen = eventData.dataSize;
-                if(iLen > 0)
-                {
-                    
-                    var pAudInputData = Module._malloc(iLen);
-                    if (pAudInputData === null)
-                    {
-                        return;
-                    }
-                    var audinputData = new Uint8Array(eventData.data);
-                    Module.writeArrayToMemory(audinputData, pAudInputData);
-                    audinputData = null;
-                    res = Module._InputAudEncodeData(pAudInputData, iLen);
-					if(bWorkerPrintLog)
-					{
-						console.log("<<<Worker: 20200113 DecodeWorker-InputAudEncodeData 2 res:"+res);
-					}
-                    
-                    if(res == PLAYM4_OK)  //接口返回成功，表明已编码好一帧音频数据
-                    {
-                        
-                        if (funGetAudFrameData === null)
-                        {
-                            funGetAudFrameData = Module.cwrap('GetAudFrameData', 'number');
-                        }
-                        if(bWorkerPrintLog)
-						{
-							console.log("<<<Worker: 20200113 DecodeWorker-InputAudEncodeData 2-1 succ");
-						}
-                        //调用C++ GetAudFrameData
-                        var ret = getAudFrameData(funGetAudFrameData);
-                    }
-                    Module._free(pAudInputData);
-                    pAudInputData = null;
+            case "StopSound":
+                let resSS = Module._StopSound();
+                if (resSS !== PLAYM4_OK) {
+                    console.log("StopSound failed");
+                    return;
                 }
+                break;
+            case "SetVolume":
+                let resSV = Module._SetVolume(g_nPort, eventData.volume);
+                if (resSV !== PLAYM4_OK) {
+                    console.log("Audio SetVolume failed");
+                    return;
+                }
+                break;
+            case "GetVolume":
+                let volume = Module._GetVolume();
+                if (volume > 0) {
+                    postMessage({ 'function': "GetVolume", 'volume': volume });
+                }
+                else {
+                    console.log("Audio GetVolume failed");
+                    return;
+                }
+                break;
+            case "OnlyPlaySound":
+                let resOPS = Module._OnlyPlaySound(g_nPort);
+                if (resOPS !== PLAYM4_OK) {
+                    console.log("OnlyPlaySound failed");
+                    return;
+                }
+                break;
+            case "Pause":
+                let resPa = Module._Pause(g_nPort, eventData.bPlay);
+                if (resPa !== PLAYM4_OK) {
+                    console.log("Pause failed");
+                    return;
+                }
+            case "PlayRate":
+                Module._SetPlayRate(g_nPort, eventData.playRate);
+                break;
+            case "SetIFrameDecInterval":
+                Module._SetIFrameDecInterval(g_nPort, eventData.data);
+                break;
+            case "SetLostFrameMode":
+                Module._SetLostFrameMode(g_nPort, eventData.data, 0);
+                break;
+            case "SetDemuxModel":
+                Module._SetDemuxModel(g_nPort, eventData.nIdemuxType, eventData.bTrue);
+                break;
+            case "SkipErrorData":
+                Module._SkipErrorData(g_nPort, eventData.bSkip);
+                break;
+            case "SetDecodeERC":
+                Module._SetDecodeERC(g_nPort, eventData.nLevel);
+                break;
+            case "SetANRParam":
+                Module._SetANRParam(g_nPort, eventData.nEnable, eventData.nANRLevel);
+                break;
+            case "SetResampleValue":
+                Module._SetResampleValue(g_nPort, eventData.nEnable, eventData.resampleValue);
+                break;
+            case "GetLastError":
+                let errorCode = Module._GetLastError(g_nPort);
+                postMessage({ 'function': "GetLastError", 'errorCode': errorCode });
+                break;
+            case "SetGlobalBaseTime":
+                Module._SetGlobalBaseTime(g_nPort, eventData.year, eventData.month, eventData.day, eventData.hour, eventData.min, eventData.sec, eventData.ms);
+                break;
+            case "SetRunTimeInfoCB":
+                Module._SetRunTimeInfoCallBackEx(g_nPort, eventData.nModuleType, 0);
                 break;
             default:
                 break;
@@ -514,79 +508,26 @@
 
         return iYear + "-" + iMonth + "-" + iDay + " " + iHour + ":" + iMinute + ":" + iSecond;
     }
-
-    function getAudFrameData(fun)
-    {
-		if(bWorkerPrintLog)
-		{
-			console.log("<<<Worker: DecodeWorker-getAudFrameData 1");
-		}
-    
-        var res = fun(); // 调用C++GetAudFrameData函数
-        if(res === PLAYM4_OK)
-        {
-            var oFrameInfo = Module._GetAudFrameInfo();
-            var iSize = oFrameInfo.frameSize;
-            if (0 === iSize)
-            {
-                return null;
-            }
-
-            var pEncodeAud = Module._GetAudFrameBuffer();
-            if(pEncodeAud == null)
-            {
-                return null;
-            }
-            var aEncodeAudData = new Uint8Array(iSize);
-            aEncodeAudData.set(Module.HEAPU8.subarray(pEncodeAud, pEncodeAud + iSize));
-			if(bWorkerPrintLog)
-			{
-				console.log("<<<Worker: DecodeWorker-getAudFrameData 2");
-			}
-            
-            //获取到音频编码帧数据通过worker返回
-            postMessage({'function':"GetAudEncodeData",'data':aEncodeAudData.buffer,'dataSize':iSize, 'errorCode': res});
-        }
-        else
-        {
-            postMessage({'function':"GetAudEncodeData",'data':null,'dataSize':-1, 'errorCode': res});
-        }
-        oFrameInfo=null;
-        pEncodeAud=null;
-        aEncodeAudData=null;
-        return res;
-    }
-
     // 获取帧数据
-    function getFrameData(fun)
-    {
-    // function getFrameData() {
+    function getFrameData() {
+        // function getFrameData() {
         // 获取帧数据
-        // var res = Module._GetFrameData();
-        var res = fun();
-        if(bWorkerPrintLog)
-        {
-            console.log("<<<Worker: getFrameData Result:"+res);
-        }
-
-        if (res === PLAYM4_OK)
-        {
+        var res = Module._GetFrameData();
+        //var res = fun();
+        if (res === PLAYM4_OK) {
             var oFrameInfo = Module._GetFrameInfo();
-            switch (oFrameInfo.frameType)
-            {
+            switch (oFrameInfo.frameType) {
                 case AUDIO_TYPE:
                     var iSize = oFrameInfo.frameSize;
-                    if (0 === iSize)
-                    {
+                    if (0 === iSize) {
                         return -1;
                     }
                     var pPCM = Module._GetFrameBuffer();
                     // var audioBuf = new ArrayBuffer(iSize);
                     var aPCMData = new Uint8Array(iSize);
                     aPCMData.set(Module.HEAPU8.subarray(pPCM, pPCM + iSize));
-                    if(bWorkerPrintLog)
-                    {
-                        console.log("<<<Worker: audio media Info: nSise:"+ oFrameInfo.frameSize+",nSampleRate:"+oFrameInfo.samplesPerSec+',channel:'+oFrameInfo.channels+',bitsPerSample:'+oFrameInfo.bitsPerSample);
+                    if (bWorkerPrintLog) {
+                        console.log("<<<Worker: audio media Info: nSise:" + oFrameInfo.frameSize + ",nSampleRate:" + oFrameInfo.samplesPerSec + ',channel:' + oFrameInfo.channels + ',bitsPerSample:' + oFrameInfo.bitsPerSample);
                     }
                     postMessage({
                         'function': "GetFrameData", 'type': "audioType", 'data': aPCMData.buffer,
@@ -605,8 +546,7 @@
                     var iHeight = oFrameInfo.height;
 
                     var iYUVSize = iWidth * iHeight * 3 / 2;
-                    if (0 === iYUVSize)
-                    {
+                    if (0 === iYUVSize) {
                         return -1;
                     }
 
@@ -615,14 +555,13 @@
                     // 图像数据渲染后压回，若从主码流切到子码流，存在数组大小与图像大小不匹配现象
                     var aYUVData = new Uint8Array(iYUVSize);
                     aYUVData.set(Module.HEAPU8.subarray(pYUV, pYUV + iYUVSize));
-                    if(bWorkerPrintLog)
-                    {
-                        console.log("<<<Worker: InputData-getFrameData Video: Width:"+ oFrameInfo.width+",Height:"+oFrameInfo.height+",timeStamp:"+oFrameInfo.timeStamp);
+                    if (bWorkerPrintLog) {
+                        console.log("<<<Worker: video media Info: Width:" + oFrameInfo.width + ",Height:" + oFrameInfo.height + ",timeStamp:" + oFrameInfo.timeStamp);
                     }
 
                     postMessage({
-                      'function': "GetFrameData", 'type': "videoType", 'data': aYUVData.buffer,
-                   'dataLen': aYUVData.length,'osd': szOSDTime, 'frameInfo': oFrameInfo, 'errorCode': res
+                        'function': "GetFrameData", 'type': "videoType", 'data': aYUVData.buffer,
+                        'dataLen': aYUVData.length, 'osd': szOSDTime, 'frameInfo': oFrameInfo, 'errorCode': res
                     }, [aYUVData.buffer]);
 
                     oFrameInfo = null;
@@ -646,37 +585,29 @@
             }
         }
         else {
+            let errorCode = Module._GetLastError(g_nPort);
             //解码失败返回裸数据
-            if(PLAYM4_DECODE_ERROR===res)
-            {
-                var rawInfo=Module._GetRawDataInfo();
+            if (PLAYM4_DECODE_ERROR === errorCode) {
+                var rawInfo = Module._GetRawDataInfo();
                 var pRawData = Module._GetRawDataBuffer();
                 var aRawData = new Uint8Array(rawInfo.isize);
                 aRawData.set(Module.HEAPU8.subarray(pRawData, pRawData + rawInfo.isize));
                 postMessage({
-                    'function': "GetRawData", 'type': "", 'data':aRawData.buffer,
-                    'rawDataLen': rawInfo.isize, 'osd': 0, 'frameInfo': null, 'errorCode': res
+                    'function': "GetRawData", 'type': "", 'data': aRawData.buffer,
+                    'rawDataLen': rawInfo.isize, 'osd': 0, 'frameInfo': null, 'errorCode': errorCode
                 });
-                rawInfo=null;
-                pRawData=null;
-                aRawData=null;
-            }
-            //定位返回的错误
-            if(PLAYM4_FIRST_FRAME_NOT_ICURRENT===res|| PLAYM4_ITYPE_DECODE_ERROR===res)
-            {
-                postMessage({
-                    'function': "GetFrameData", 'type': "", 'data': null,
-                    'dataLen': -1, 'osd': 0, 'frameInfo': null, 'errorCode': res
-                });
+                rawInfo = null;
+                pRawData = null;
+                aRawData = null;
             }
             //需要更多数据
-            if (PLAYM4_NEED_MORE_DATA === res || PLAYM4_SYS_NOT_SUPPORT === res || PLAYM4_NOT_KEYFRAME === res){
+            if (PLAYM4_NEED_MORE_DATA === errorCode || PLAYM4_SYS_NOT_SUPPORT === errorCode || PLAYM4_NEED_NEET_LOOP === errorCode) {
                 postMessage({
                     'function': "GetFrameData", 'type': "", 'data': null,
-                    'dataLen': -1, 'osd': 0, 'frameInfo': null, 'errorCode': res
+                    'dataLen': -1, 'osd': 0, 'frameInfo': null, 'errorCode': errorCode
                 });
             }
-            return res;
+            return errorCode;
         }
     }
 
@@ -691,19 +622,19 @@
     }
 
     // 字母字符串转byte数组
-    function stringToBytes ( str ) {
+    function stringToBytes(str) {
         var ch, st, re = [];
-        for (var i = 0; i < str.length; i++ ) {
+        for (var i = 0; i < str.length; i++) {
             ch = str.charCodeAt(i);  // get char
             st = [];                 // set up "stack"
             do {
-                st.push( ch & 0xFF );  // push byte to stack
+                st.push(ch & 0xFF);  // push byte to stack
                 ch = ch >> 8;          // shift value down by 1 byte
             }
-            while ( ch );
+            while (ch);
             // add stack contents to result
             // done because chars have "wrong" endianness
-            re = re.concat( st.reverse() );
+            re = re.concat(st.reverse());
         }
         // return an array of bytes
         return re;

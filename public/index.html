@@ -2,7 +2,7 @@
 <meta charset="utf-8">
 <title>hk demo</title>
 <script src="./3.2.36_dist_vue.global.js"></script>
-<script src="./hk.umd.js"></script>
+<script src="./hk.umd.min.js"></script>
 <link rel="stylesheet" href="./hk.css">
 <body>
   <div id="app"></div>
@@ -12,12 +12,13 @@
 var app = Vue.createApp()
 app.use(hk.default)
 console.log(app)
-var $ref = app.config.globalProperties.$hk.$ref.value
+var $hk = app.config.globalProperties.$hk
+$hk.changeProps({
+  host: 'http://192.168.2.102:2025',
+  countdown: 1
+})
 function aa(){
-  $ref.handleGetHkUrl({
-    data: { deviceCode: 'e4071db6c3424bacba98242f844ea56e', name: 'cjj' },
-    baseUrl: 'http://192.168.2.231:9000/api/sys/HikService/previewURLs',
-  })
-  console.log($ref)
+  console.log($hk)
+  $hk.$ref.value.handleGetHkUrl({rescode: 'cf8261c864dd46309c0b197b217bce6f', sercode: 'ShiHeng'})
 }
 </script>

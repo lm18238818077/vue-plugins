@@ -13,7 +13,7 @@ class HkPlayer {
     this.muted = true
     this.volume = 50
     this.mseSupport = !!window.MediaSource
-    this.mode = 0
+    this.mode = 1
     this.rate = 0
     this.urls = {
       realplay: '',
@@ -24,39 +24,13 @@ class HkPlayer {
     this.player = new HkConstructor.JSPlugin({
       szId: 'hk_player',
       szBasePath: '/hk',
-      iMaxSplit: 4,
-      iCurrentSplit: 2,
+      iMaxSplit: 1,
+      iCurrentSplit: 1,
       openDebug: true,
       oStyle: {
         borderSelect: '#FFCC00'
       },
       ...options
-    })
-    this.player.JS_SetWindowControlCallback({
-      windowEventSelect: function (iWndIndex) { // 插件选中窗口回调
-        Events.trigger('windowEventSelect', iWndIndex)
-      },
-      pluginErrorHandler: function (iWndIndex, iErrorCode, oError) { // 插件错误回调
-        Events.trigger('pluginErrorHandler', iWndIndex, iErrorCode, oError)
-      },
-      windowEventOver: function (iWndIndex) { // 鼠标移过回调
-        Events.trigger('windowEventOver', iWndIndex)
-      },
-      windowEventOut: function (iWndIndex) { // 鼠标移出回调
-        Events.trigger('windowEventOut', iWndIndex)
-      },
-      windowEventUp: function (iWndIndex) { // 鼠标mouseup事件回调
-        Events.trigger('windowEventUp', iWndIndex)
-      },
-      windowFullCcreenChange: function (bFull) { // 全屏切换回调
-        Events.trigger('windowFullCcreenChange', bFull)
-      },
-      firstFrameDisplay: function (iWndIndex, iWidth, iHeight) { // 首帧显示回调
-        Events.trigger('firstFrameDisplay', iWndIndex, iWidth, iHeight)
-      },
-      performanceLack: function () { // 性能不足回调
-        Events.trigger('performanceLack')
-      }
     })
   }
 
@@ -107,19 +81,14 @@ class HkPlayer {
     )
   }
 
-  talkStart (u) {
+  talkStart(u) {
+    this.player.JS_SetConnectTimeOut(0, 1000)
     let url = u ?? this.urls.talk
-    this.player.JS_StartTalk(url).then(
-      () => { console.log('talkStart success') },
-      (e) => { console.error(e) }
-    )
+    return this.player.JS_StartTalk(url)
   }
 
   talkStop () {
-    this.player.JS_StopTalk().then(
-      () => { console.log('talkStop success') },
-      (e) => { console.error(e) }
-    )
+    return this.player.JS_StopTalk()
   }
 
   stopAllPlay () {
@@ -138,59 +107,48 @@ class HkPlayer {
 
     startTime += 'Z'
     endTime += 'Z'
-
-    player.JS_Play(playURL, { playURL, mode }, index, startTime, endTime).then(
-      () => {
-        console.log('playbackStart success')
-        this.rate = 1
-      },
-      (e) => { console.error(e) }
-    )
+    this.rate = 1
+    return player.JS_Play(playURL, { playURL, mode }, index, startTime, endTime)
   }
 
-  playbackPause (i) {
-    return this.player.JS_Pause(i)
+  playbackPause() {
+    let index = this.player.currentWindowIndex
+    return this.player.JS_Pause(index)
   }
 
   playbackStop () {
-    this.player.JS_Stop().then(
-      () => { console.log('playbackStop success') },
-      (e) => { console.error(e) }
-    )
+    return this.player.JS_Stop()
   }
 
-  playbackResume () {
-    this.player.JS_Resume().then(
-      () => { console.log('playbackResume success') },
-      (e) => { console.error(e) }
-    )
+  playbackResume() {
+    let index = this.player.currentWindowIndex
+    return this.player.JS_Resume(index)
   }
 
-  seekTo (playback) {
-    let { seekStart, endTime } = playback
-    seekStart += 'Z'
+  playbackSeekTo (playback) {
+    let { startTime, endTime } = playback
+    startTime += 'Z'
     endTime += 'Z'
-    this.player.JS_Seek(this.player.currentWindowIndex, seekStart, endTime).then(
-      () => { console.log('seekTo success') },
-      (e) => { console.error(e) }
-    )
+    return this.player.JS_Seek(this.player.currentWindowIndex, startTime, endTime)
   }
 
   playbackSlow () {
-    this.player.JS_Slow().then(
+    return this.player.JS_Slow().then(
       (rate) => {
         this.rate = rate
+        return rate
       },
-      (e) => { console.error(e) }
+      (e) => { return e }
     )
   }
 
   playbackFast () {
-    this.player.JS_Fast().then(
+    return this.player.JS_Fast().then(
       (rate) => {
         this.rate = rate
+        return rate
       },
-      (e) => { console.error(e) }
+      (e) => { return e }
     )
   }
 
@@ -225,19 +183,14 @@ class HkPlayer {
   setVolume (value) {
     let player = this.player
     let index = player.currentWindowIndex
-    this.player.JS_SetVolume(index, value).then(
-      () => {
-        console.log('setVolume success', value)
-      },
-      (e) => { console.error(e) }
-    )
+    return this.player.JS_SetVolume(index, value)
   }
 
-  capture (fileName, imageType = 'JPEG') {
+  capture (fileName, imageType, cb) {
     let player = this.player
     let index = player.currentWindowIndex
 
-    return player.JS_CapturePicture(index, fileName, imageType)
+    return player.JS_CapturePicture(index, fileName, imageType, cb)
   }
 
   recordStart (type, fileNameDefault) {
@@ -246,21 +199,13 @@ class HkPlayer {
     let index = player.currentWindowIndex
     let fileName = fileNameDefault || `${Date.now()}.mp4`
     let typeCode = codeMap[type]
-
-    player.JS_StartSaveEx(index, fileName, typeCode).then(
-      () => { console.log('record start ...') },
-      (e) => { console.error(e) }
-    )
+    return player.JS_StartSaveEx(index, fileName, typeCode)
   }
 
   recordStop () {
     let player = this.player
     let index = player.currentWindowIndex
-
-    player.JS_StopSave(index).then(
-      () => { console.log('record stoped, saving ...') },
-      (e) => { console.error(e) }
-    )
+    return player.JS_StopSave(index)
   }
 
   /* 电子放大、智能信息 */
@@ -302,6 +247,7 @@ class HkPlayer {
     let player = this.player
     let index = player.currentWindowIndex
     player.JS_GetVideoInfo(index).then(function (videoInfo) {
+      console.log('videoInfo:', videoInfo)
       return videoInfo
     })
   }
@@ -311,6 +257,7 @@ class HkPlayer {
     let index = player.currentWindowIndex
 
     player.JS_GetOSDTime(index).then(function (time) {
+      console.log('osdTime:', new Date(time))
       return time
     })
   }

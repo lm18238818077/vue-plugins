@@ -29,6 +29,8 @@
       :index="i"
       :data="v"
       :hkoptions="{iWidth: 332, iHeight: 230}"
+      :countdown="props.countdown"
+      :host="props.host"
       @close="handleClose(v)"
     />
   </DqDialog>
@@ -41,13 +43,22 @@ import HkDialogInfo from './HkDialogInfo.vue'
 import { useIcpStore } from '@/store/icp'
 import dqVoicePng from '@/assets/dq_voice.png'
 import dqVideoPng from '@/assets/dq_video.png'
-import { hkpreviewURLs } from '@/api/hk'
 
 import { ElMessage, ElIcon } from "element-plus";
 import { CircleClose } from '@element-plus/icons-vue'
 import 'element-plus/es/components/message/style/css'
 import 'element-plus/es/components/icon/style/css'
 
+const props = defineProps({
+  countdown: {
+    type: [Number, String],
+    default: 10
+  },
+  host: {
+    type: String,
+    default: ''
+  }
+})
 
 const icpStore = useIcpStore()
 const hkCallConnect = computed(() => {
@@ -66,34 +77,11 @@ const handleDialogClose = (v) => {
   handleClose(v)
 }
 
-const getHkUrl = async ({data, token, baseUrl}) => {
-  return hkpreviewURLs({
-    data: {
-      cameraIndexCode: data.deviceCode,
-      streamType: 0,
-      protocol: 'ws',
-      transmode: 1,
-      expand: 'streamform=ps'
-    },
-    token,
-    baseUrl
-  })
-}
-
-const handleGetHkUrl = async ({ data, baseUrl, token }) => {
-  let { deviceCode, host = '221.204.213.61:559', name, origin } = data
-  let res = await getHkUrl({ data, token, baseUrl })
-  let url1 = res.Data?.data?.url.split('openUrl')[1]
-  let url = ''
-  if (origin) {
-    url = res.Data?.data?.url
+const handleGetHkUrl = async ({ rescode, sercode, name = '视频监控' }) => {
+  if (rescode && sercode) {
+    icpStore.addCall({ cid: rescode, name: name, type: 'hk', calltype: 'hkvideo', rescode, sercode })
   } else {
-    url = `ws://${host}/openUrl${url1}`
-  }
-  if (url) {
-    icpStore.addCall({ url, cid: deviceCode, name: name, type: 'hk', calltype: 'hkvideo', deviceCode })
-  } else {
-    ElMessage.error('未能获取到url链接！')
+    ElMessage.error('无设备编码！')
   }
 }
 

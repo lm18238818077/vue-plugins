@@ -7,7 +7,10 @@ export function useIcpStore() {
   const onCallConnect = ref([])
 
   const addCall = (data) => {
-    onCallConnect.value.push(data)
+    let index = onCallConnect.value.findIndex(v => v.cid === data.cid)
+    if (index < 0) {
+      onCallConnect.value.push(data)
+    }
   }
   const reduceCall = (val) => {
     let index = onCallConnect.value.findIndex(v => v.cid === val.cid)
