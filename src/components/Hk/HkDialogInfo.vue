@@ -115,7 +115,7 @@
         <IconSvg
           :name="isMute ? 'icon-shengyinjingyin' : 'icon-shengyin'"
           color="#fcf498"
-          class="icon iconall"
+          class="hkicon iconall"
           @click="handleVoice()"
         />
         <el-slider
@@ -131,7 +131,7 @@
         <el-icon
           color="#fcf498"
           :size="20"
-          class="icon iconall"
+          class="hkicon iconall"
           title="截屏"
           @click="handleCapture()"
         >
@@ -142,7 +142,7 @@
         <el-icon
           :color="recordVideo ? '#f56c6c' : '#fcf498'"
           :size="20"
-          class="icon iconall"
+          class="hkicon iconall"
           :title="recordVideo ? '停止录像' : '开始录像'"
           @click="handleVideo()"
         >
@@ -153,7 +153,7 @@
         <el-icon
           :color="voiceing ? '#f56c6c' : '#fcf498'"
           :size="20"
-          class="icon iconall"
+          class="hkicon iconall"
           :title="voiceing ? '停止对讲' : '开始对讲'"
           @click="handleTalk()"
         >
@@ -167,7 +167,7 @@
         <IconSvg
           :name="isZi ? 'icon-xianlu2' : 'icon-xianlu1'"
           color="#fcf498"
-          class="icon iconall"
+          class="hkicon iconall"
           @click="handleMa()"
         />
       </div>
@@ -184,7 +184,7 @@
             <el-icon
               color="#fcf498"
               :size="20"
-              class="icon iconall"
+              class="hkicon iconall"
               title="云台控制"
             >
               <Coordinate />
@@ -239,7 +239,7 @@
             <el-icon
               color="#fcf498"
               :size="20"
-              class="icon iconall"
+              class="hkicon iconall"
               title="选择回放时间"
             >
               <Calendar />
@@ -283,7 +283,7 @@
           :size="20"
           title="慢放"
           color="#fcf498"
-          class="icon iconall"
+          class="hkicon iconall"
           @click="handleRate(false)"
         >
           <DArrowLeft />
@@ -292,7 +292,7 @@
           :size="20"
           color="#fcf498"
           title="快放"
-          class="icon iconall"
+          class="hkicon iconall"
           @click="handleRate(true)"
         >
           <DArrowRight />
@@ -303,7 +303,7 @@
           v-if="!errorText"
           color="#fcf498"
           :size="20"
-          class="icon iconall"
+          class="hkicon iconall"
           :title="playback ? '返回' : '打开录像回放'"
           @click="handlePlayBack(playback)"
         >
@@ -315,7 +315,7 @@
           v-if="playing"
           :name="isFull ? 'icon-quxiaoquanping_o' : 'icon-quanping_o'"
           color="#fcf498"
-          class="icon iconall"
+          class="hkicon iconall"
           @click="handleAll"
         />
       </div>
@@ -339,7 +339,7 @@
 </template>
 
 <script setup>
-import { PropType, reactive, ref, shallowRef, onMounted, onBeforeMount, onBeforeUnmount, watch, computed } from 'vue'
+import { reactive, ref, shallowRef, onMounted, onBeforeMount, onBeforeUnmount, watch, computed } from 'vue'
 import HkPlayer from '@/utils/lib/hkPlayer'
 import hkStatus from '@/config/hk/status'
 import { version } from '@/config/hk'
@@ -1086,7 +1086,7 @@ defineExpose({ resize })
         margin-left: auto;
       }
     }
-    .icon{
+    .hkicon{
       width: 24px;
       height: 24px;
     }

@@ -19,7 +19,13 @@
     "lodash": "^4.17.21",
     "pinia": "^2.0.14",
     "vue": "^3.2.13",
-    "vuex": "^4.0.2"
+    "vuex": "^4.0.2",
+    "xgplayer": "^3.0.9",
+    "xgplayer-flv": "^3.0.9",
+    "xgplayer-flv.js": "^3.0.9",
+    "xgplayer-hls": "^3.0.9",
+    "xgplayer-mp4": "^3.0.9",
+    "xgplayer-music": "^3.0.9"
   },
   "devDependencies": {
     "@babel/core": "^7.12.16",

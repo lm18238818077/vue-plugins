@@ -33,6 +33,7 @@
       :host="props.host"
       @close="handleClose(v)"
     />
+    <video :src="v.rebackUrl" controls class="hkvideo" v-else-if="v.rebackUrl"></video>
   </DqDialog>
 </template>
 
@@ -77,9 +78,11 @@ const handleDialogClose = (v) => {
   handleClose(v)
 }
 
-const handleGetHkUrl = async ({ rescode, sercode, name = '视频监控' }) => {
+const handleGetHkUrl = async ({ rescode, sercode, name = '视频监控', rebackUrl }) => {
   if (rescode && sercode) {
     icpStore.addCall({ cid: rescode, name: name, type: 'hk', calltype: 'hkvideo', rescode, sercode })
+  } else if (rebackUrl) {
+    icpStore.addCall({ cid: rebackUrl, name: name, type: 'hk', rebackUrl })
   } else {
     ElMessage.error('无设备编码！')
   }
@@ -104,5 +107,8 @@ defineExpose({
     margin-left: auto;
     cursor: pointer;
   }
+}
+.hkvideo{
+  width: 100%;
 }
 </style>
