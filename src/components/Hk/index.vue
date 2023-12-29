@@ -24,15 +24,16 @@
         </el-icon>
       </div>
     </template>
-    <HkDialogInfo
-      v-if="v.calltype === 'hkvideo'"
-      :index="i"
-      :data="v"
-      :hkoptions="{iWidth: 332, iHeight: 230}"
-      :countdown="props.countdown"
-      :host="props.host"
-      @close="handleClose(v)"
-    />
+    <div style="width: 332px;height: 230px" v-if="v.calltype === 'hkvideo'">
+      <HkDialogInfo
+        :index="i"
+        :data="v"
+        :hkoptions="{iWidth: 332, iHeight: 230}"
+        :countdown="props.countdown"
+        :host="props.host"
+        @close="handleClose(v)"
+      />
+    </div>
     <video :src="v.rebackUrl" controls class="hkvideo" v-else-if="v.rebackUrl"></video>
   </DqDialog>
 </template>
@@ -78,11 +79,9 @@ const handleDialogClose = (v) => {
   handleClose(v)
 }
 
-const handleGetHkUrl = async ({ rescode, sercode, name = '视频监控', rebackUrl }) => {
+const handleGetHkUrl = async ({ rescode, sercode, name = '视频监控', beginTime, endTime }) => {
   if (rescode && sercode) {
-    icpStore.addCall({ cid: rescode, name: name, type: 'hk', calltype: 'hkvideo', rescode, sercode })
-  } else if (rebackUrl) {
-    icpStore.addCall({ cid: rebackUrl, name: name, type: 'hk', rebackUrl })
+    icpStore.addCall({ cid: rescode, name: name, type: 'hk', calltype: 'hkvideo', rescode, sercode, beginTime, endTime })
   } else {
     ElMessage.error('无设备编码！')
   }

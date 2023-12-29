@@ -10,6 +10,7 @@
   >
     <div
       :id="szId"
+      ref="hkinfo"
       class="hkinfo"
     />
     <el-icon
@@ -224,6 +225,14 @@
           >
             <ZoomOut />
           </el-icon>
+          <el-icon
+            size="24"
+            title="停止动作"
+            color="#F56C6C"
+            @click="handleControl(10, true)"
+          >
+            <RemoveFilled />
+          </el-icon>
         </div>
       </el-popover>
       <el-popover
@@ -325,8 +334,9 @@
       id="timeSlider"
       ref="timeSliderRef"
       :init-time="playCurrentTime"
-      :init-zoom-index="1"
+      :init-zoom-index="0"
       :enable-zoom="false"
+      :is-mobile="true"
       hover-text-color="#fff"
       :time-segments="playbackData.list || []"
       @time-change="timeChange"
@@ -397,6 +407,7 @@ const props = defineProps({
 
 const ruleFormRef = ref()
 const wrap = ref()
+const hkinfo = ref()
 const hkPlayer = shallowRef()
 const szId = ref(`hk_player_${props.index}`)
 const iconShow = ref(false)
@@ -434,11 +445,20 @@ const hkDeviceDetail = computed(() => {
 }) // 海康设备的信息
 
 const hkVersion = computed(() => version[hkDeviceDetail.value?.SERVER_CODE] || 'v1')
+const playbackTime = computed(() => {
+  if (props.data?.beginTime && props.data?.endTime) {
+    return [
+      dayjs(props.data?.beginTime).format('YYYY-MM-DD HH:mm:ss'),
+      dayjs(props.data?.endTime).format('YYYY-MM-DD HH:mm:ss')
+    ]
+  } else {
+    return [
+      dayjs().format('YYYY-MM-DD 00:00:00'),
+      dayjs().format('YYYY-MM-DD 23:59:59')
+    ]
+  }
+})
 
-const playbackTime = ref([
-  dayjs().format('YYYY-MM-DD 00:00:00'),
-  dayjs().format('YYYY-MM-DD 23:59:59')
-])
 const formData = reactive({ playbackTime }) // 为了不改以前写的
 
 const messageSetting = computed(() => ({ appendTo: wrap.value, customClass: 'hkmessage', offset: 1 }))
@@ -656,7 +676,7 @@ const handlePlayBackTime = async () => {
   })
 }
 
-const handleControl = async (type) => {
+const handleControl = async (type, b) => {
   let command = {
     1: 'LEFT',
     2: 'DOWN',
@@ -675,7 +695,7 @@ const handleControl = async (type) => {
       operate: '/artemis/api/video/v1/ptzs/controlling',
       params: {
         cameraIndexCode: hkDeviceDetail.value?.RESOURCE_CODE,
-        action: 0,
+        action: b ? 1 : 0,
         command: command[type] || 'LEFT'
       }
     }
@@ -692,6 +712,10 @@ const handleMa = () => {
   handlePlayBack(true)
 }
 
+/**
+ * description
+ *  type true 实时画面
+ */
 const handlePlayBack = async (type) => {
   if (type) {
     if (getUrlFlag.value) return
@@ -777,11 +801,26 @@ const handleSwitchPlayBack = (time, seek) => {
   })
 }
 
+document.addEventListener('fullscreenchange', function fullscreenchanged (event) {
+  // 如果有元素处于全屏模式，则 document.fullscreenElement 将指向该元素。如果没有元素处于全屏模式，则该属性的值为 null。
+  if (document.fullscreenElement) {
+    if (document.fullscreenElement.id === 'hk_wrap') {
+      isFull.value = true
+    }
+  } else {
+    isFull.value = false
+  }
+})
+
 const handleAll = () => {
   if (isFull.value) {
     document.exitFullscreen()
   } else {
-    hkPlayer.value.singleFullScreenSingle()
+    wrap.value.requestFullscreen()
+    if (hkinfo.value.attributes.style) {
+      hkinfo.value.attributes.style.nodeValue = ''
+    }
+    resize()
   }
   isFull.value = !isFull.value
 }
@@ -802,7 +841,7 @@ const handleRate = (type) => {
   }
 }
 
-const init = (url) => {
+const init = () => {
   hkPlayer.value = new HkPlayer({
     szBasePath: '/hk',
     oStyle: {
@@ -836,21 +875,12 @@ const init = (url) => {
       handleStreamEnd(index)
     }
   })
-  if (wsUrl.value) {
-    hkPlayer.value.realplay(wsUrl.value).then(() => {
-      played.value = true
-      loading.value = false
-      handleContinuePlay()
-    })
-  } else {
-    return messageError('预览地址无效！')
-  }
   // eslint-disable-next-line vue/no-mutating-props
   props.data.instance = hkPlayer.value
 }
 
-const resize = () => {
-  hkPlayer.value?.resize()
+const resize = (iWidth, iHeight) => {
+  hkPlayer.value?.resize(iWidth, iHeight)
   timeSliderRef.value?.onResize()
 }
 
@@ -892,6 +922,7 @@ const getPlaybackUrl = async (code) => {
       recordLocation: '1',
       protocol: 'ws',
       streamform: 'ps',
+      expand: 'streamform=rtp',
       beginTime: dayjs(playbackTime.value[0]).format('YYYY-MM-DDTHH:mm:ss[.000+08:00]'),
       endTime: dayjs(playbackTime.value[1]).format('YYYY-MM-DDTHH:mm:ss[.000+08:00]')
     }
@@ -910,22 +941,19 @@ const transUrl = (ourl) => {
   let url = ''
   if (!ourl) return ''
   if (props.originHost) {
-    url = ourl
+    url = ourl.replace(/(?<=\/\/).*(?=:)/, '221.204.213.61')
   } else {
-    let u = ourl.split('openUrl')[1]
-    url = `ws://221.204.213.61:559/openUrl${u}`
+    url = ourl
   }
   return url
 }
 
 onMounted(async () => {
-  loading.value = true
-  if (props.data?.url) {
-    init()
+  init()
+  if (props.data?.beginTime) {
+    handlePlayBack()
   } else {
-    let res = await getPreviewUrl()
-    init()
-    loading.value = false
+    handlePlayBack(true)
   }
 })
 
@@ -1151,6 +1179,11 @@ defineExpose({ resize })
         &:nth-child(10){
           transform: translate(-50%, -50%);
           left: 75%;
+          top: 50%;
+        }
+        &:nth-child(11){
+          transform: translate(-50%, -50%);
+          left: 50%;
           top: 50%;
         }
       }

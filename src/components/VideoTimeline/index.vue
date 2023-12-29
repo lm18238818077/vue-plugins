@@ -298,7 +298,7 @@ onMounted(() => {
   init()
   draw()
   if (props.isMobile) {
-    window.addEventListener('touchend', onTouchend)
+    timeLineContainer.value.addEventListener('touchend', onTouchend)
   } else {
     window.addEventListener('mouseup', onMouseup)
   }
@@ -307,7 +307,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   if (props.isMobile) {
-    window.removeEventListener('touchend', onTouchend)
+    timeLineContainer.value.removeEventListener('touchend', onTouchend)
   } else {
     window.removeEventListener('mouseup', onMouseup)
   }
@@ -613,6 +613,7 @@ const onMouseup = (e) => {
 // 松开事件
 const onPointerup = (e) => {
   // 触发click事件
+  console.log(11)
   let pos = getClientOffset(e)
   const reset = () => {
     mousedown.value = false
